@@ -20,7 +20,14 @@ impl Plugin for AttackPlugin {
 }
 
 fn punch(
-    mut clients: Query<(&mut Client, &Look, &Velocity, &EntityId, &Position)>,
+    mut clients: Query<(
+        &mut Client,
+        &Look,
+        &Velocity,
+        &EntityId,
+        &Position,
+        &GameMode,
+    )>,
     mut interact_entity: EventReader<InteractEntity>,
 ) {
     let mut packets: Vec<EntityDamageS2c> = vec![];
@@ -29,8 +36,10 @@ fn punch(
             continue;
         }
         let attacker = clients.get(event.client).unwrap();
+        if *attacker.5 == GameMode::Spectator {
+            continue;
+        }
         let attacker_look = attacker.1.vec();
-        let attacker_look_yaw = attacker.1.yaw;
         let attacker_id = attacker.3.get();
         let attacker_pos = attacker.4 .0;
         let mut victim = clients.get_mut(event.entity).unwrap();

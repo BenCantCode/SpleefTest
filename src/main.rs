@@ -2,8 +2,10 @@
 
 use bevy_time::{prelude::*, TimePlugin};
 use valence::network::ConnectionMode;
+use valence::packet::s2c::play::TitleFadeS2c;
 use valence::prelude::*;
 
+mod anticheat;
 mod attack;
 mod chat;
 
@@ -14,6 +16,7 @@ fn main() {
     App::new()
         .insert_resource(net)
         .add_plugins(DefaultPlugins)
+        .add_plugin(anticheat::AnticheatPlugin)
         .add_plugin(TimePlugin)
         .add_plugin(chat::ChatPlugin)
         .add_plugin(attack::AttackPlugin)
@@ -21,8 +24,7 @@ fn main() {
         .add_system(init_clients)
         .add_system(despawn_disconnected_clients)
         .add_system(dig)
-        .insert_resource(RoundTimer(Timer::from_seconds(30.0, TimerMode::Repeating)))
-        .add_system(round_timer)
+        .add_system(death)
         .run();
 }
 
@@ -78,18 +80,23 @@ fn dig(mut instances: Query<&mut Instance>, mut events: EventReader<Digging>) {
 #[derive(Resource)]
 struct RoundTimer(Timer);
 
-fn round_timer(
+fn death(
     time: Res<Time>,
-    mut timer: ResMut<RoundTimer>,
     mut instances: Query<&mut Instance>,
-    mut clients: Query<(&mut Client, &mut Position)>,
+    mut clients: Query<(&mut Client, &mut Position, &mut GameMode)>,
 ) {
-    let mut instance = instances.single_mut();
-    if timer.0.tick(time.delta()).just_finished() {
-        reset_map(&mut instance);
-        for (mut client, mut pos) in &mut clients {
-            client.send_message("Resetting map.");
-            pos.set([0.0, 256.0, 0.0]);
+    for (mut client, mut pos, mut game_mode) in &mut clients {
+        if pos.0.y < 0.0 && *game_mode == GameMode::Survival {
+            client.set_title(
+                "You got spleefed!",
+                "That's rough, buddy.",
+                TitleFadeS2c {
+                    fade_in: 20,
+                    stay: 60,
+                    fade_out: 20,
+                },
+            );
+            *game_mode = GameMode::Spectator;
         }
     }
 }
