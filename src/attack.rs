@@ -27,7 +27,9 @@ fn punch(
         &EntityId,
         &Position,
         &GameMode,
+        &Location,
     )>,
+    mut instances: Query<&mut Instance>,
     mut interact_entity: EventReader<InteractEntity>,
 ) {
     let mut packets: Vec<EntityDamageS2c> = vec![];
@@ -42,6 +44,9 @@ fn punch(
         let attacker_look = attacker.1.vec();
         let attacker_id = attacker.3.get();
         let attacker_pos = attacker.4 .0;
+        let Ok(mut attacker_instance) = instances.get_mut(attacker.6.0) else {
+            continue;
+        };
         let mut victim = clients.get_mut(event.entity).unwrap();
         let victim_velocity: Vec3 = victim.2 .0;
         // Add velocity to victim
@@ -56,21 +61,14 @@ fn punch(
             source_direct_id: (attacker_id + 1).into(),
             source_pos: Some(attacker_pos),
         });
+
         // Create damage packet
-        packets.push(EntityDamageS2c {
+        attacker_instance.write_packet(&EntityDamageS2c {
             entity_id: victim.3.get().into(),
             source_type_id: (1).into(), /* ENTITY_ATTACK */
             source_cause_id: (attacker_id + 1).into(),
             source_direct_id: (attacker_id + 1).into(),
             source_pos: Some(attacker_pos),
         });
-    }
-    for mut client in clients.iter_mut() {
-        for packet in &packets {
-            // Victim has already received packet.
-            if packet.entity_id.0 != client.3.get() {
-                client.0.write_packet(packet);
-            }
-        }
     }
 }

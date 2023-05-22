@@ -85,7 +85,7 @@ fn death(
     mut instances: Query<&mut Instance>,
     mut clients: Query<(&mut Client, &mut Position, &mut GameMode)>,
 ) {
-    for (mut client, mut pos, mut game_mode) in &mut clients {
+    /*for (mut client, mut pos, mut game_mode) in &mut clients {
         if pos.0.y < 0.0 && *game_mode == GameMode::Survival {
             client.set_title(
                 "You got spleefed!",
@@ -98,5 +98,5 @@ fn death(
             );
             *game_mode = GameMode::Spectator;
         }
-    }
+    }*/
 }
